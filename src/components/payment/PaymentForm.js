@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   TextField,
@@ -8,7 +8,6 @@ import {
   Card,
   CardContent,
   CircularProgress,
-  Alert,
 } from '@mui/material';
 import { getTuitionByStudentId, sendOtp, processPayment } from '../../api/tuitionApi';
 import CustomAlert from '../common/CustomAlert';
@@ -18,24 +17,38 @@ import CustomAlert from '../common/CustomAlert';
  * @description Component containing the tuition payment form.
  * @param {object} props - Component props.
  * @param {object} props.user - The logged-in user object.
+ * @param {object} props.tuitionInfo - Optional tuition information to pre-fill the form.
+ * @param {function} props.onPaymentSuccess - Callback function after a successful payment.
  */
-const PaymentForm = ({ user }) => {
+const PaymentForm = ({ user, tuitionInfo, onPaymentSuccess }) => {
   const [studentId, setStudentId] = useState('');
-  const [studentInfo, setStudentInfo] = useState(null);
+  const [studentDetails, setStudentDetails] = useState(null);
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [alert, setAlert] = useState({ open: false, message: '', severity: 'success' });
 
+  // Use useEffect to handle pre-filling the form if tuitionInfo is provided
+  useEffect(() => {
+    if (tuitionInfo) {
+      setStudentId(tuitionInfo.student_id);
+      setStudentDetails({
+        student_id: tuitionInfo.student_id,
+        fullname: 'Lê Thị B', // Mock student name since it's not in the tuition mock data
+        tuition_fee: tuitionInfo.amount,
+      });
+    }
+  }, [tuitionInfo]);
+
   const handleStudentIdChange = async (e) => {
     const id = e.target.value;
     setStudentId(id);
-    setStudentInfo(null);
+    setStudentDetails(null);
     if (id.length > 0) {
       setIsLoading(true);
       try {
         const student = await getTuitionByStudentId(id);
-        setStudentInfo(student);
+        setStudentDetails(student);
       } catch (err) {
         setAlert({ open: true, message: err.message, severity: 'error' });
       } finally {
@@ -64,17 +77,15 @@ const PaymentForm = ({ user }) => {
     try {
       const paymentDetails = {
         user_id: user.username,
-        tuition_id: studentId,
-        tuition_fee: studentInfo.tuition_fee,
+        tuition_id: tuitionInfo ? tuitionInfo.id : 'N/A',
+        tuition_fee: studentDetails.tuition_fee,
         available_balance: user.available_balance,
       };
       const result = await processPayment(paymentDetails, otp);
       setAlert({ open: true, message: result.message, severity: 'success' });
-      // In a real app, update the user's balance here, and navigate to a success page.
-      setIsOtpSent(false); // Reset form
-      setStudentId('');
-      setStudentInfo(null);
-      setOtp('');
+      if (onPaymentSuccess) {
+        onPaymentSuccess();
+      }
     } catch (err) {
       setAlert({ open: true, message: err.message, severity: 'error' });
     } finally {
@@ -82,7 +93,7 @@ const PaymentForm = ({ user }) => {
     }
   };
 
-  const isFormValid = studentId.length > 0 && studentInfo !== null;
+  const isFormValid = studentId.length > 0 && studentDetails !== null;
   const isOtpValid = otp.length === 6;
 
   return (
@@ -139,20 +150,21 @@ const PaymentForm = ({ user }) => {
                 label="Mã sinh viên"
                 value={studentId}
                 onChange={handleStudentIdChange}
+                disabled={!!tuitionInfo} // Disable if tuitionInfo prop is present
               />
             </Grid>
-            {isLoading && !studentInfo && (
+            {isLoading && !studentDetails && (
               <Box sx={{ display: 'flex', justifyContent: 'center', p: 2, width: '100%' }}>
                 <CircularProgress />
               </Box>
             )}
-            {studentInfo && (
+            {studentDetails && (
               <>
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
                     label="Họ và tên sinh viên"
-                    value={studentInfo?.fullname || ''}
+                    value={studentDetails?.fullname || ''}
                     InputProps={{ readOnly: true }}
                   />
                 </Grid>
@@ -160,7 +172,7 @@ const PaymentForm = ({ user }) => {
                   <TextField
                     fullWidth
                     label="Tổng số học phí cần phải trả"
-                    value={studentInfo?.tuition_fee ? `${studentInfo.tuition_fee.toLocaleString('vi-VN')} VNĐ` : ''}
+                    value={studentDetails?.tuition_fee ? `${studentDetails.tuition_fee.toLocaleString('vi-VN')} VNĐ` : ''}
                     InputProps={{ readOnly: true }}
                   />
                 </Grid>
@@ -189,7 +201,7 @@ const PaymentForm = ({ user }) => {
               <TextField
                 fullWidth
                 label="Số học phí cần thanh toán"
-                value={studentInfo?.tuition_fee ? `${studentInfo.tuition_fee.toLocaleString('vi-VN')} VNĐ` : ''}
+                value={studentDetails?.tuition_fee ? `${studentDetails.tuition_fee.toLocaleString('vi-VN')} VNĐ` : ''}
                 InputProps={{ readOnly: true }}
               />
             </Grid>
@@ -202,7 +214,7 @@ const PaymentForm = ({ user }) => {
         {!isOtpSent && (
           <Button
             variant="contained"
-            disabled={!isFormValid || isLoading || (user.available_balance < (studentInfo?.tuition_fee || 0))}
+            disabled={!isFormValid || isLoading || (user.available_balance < (studentDetails?.tuition_fee || 0))}
             onClick={handleSendOtp}
           >
             {isLoading ? <CircularProgress size={24} color="inherit" /> : 'Xác nhận thanh toán'}
