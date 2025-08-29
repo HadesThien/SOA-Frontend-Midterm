@@ -11,6 +11,7 @@ import {
   ListItemText,
 } from "@mui/material";
 import { findUserByStudentId } from "../api/userApi";
+import { addTransaction } from "../api/transactionApi"; //  import thêm
 
 export default function PaymentPage({ currentUser }) {
   const [studentId, setStudentId] = useState("");
@@ -23,7 +24,7 @@ export default function PaymentPage({ currentUser }) {
     try {
       setError("");
       const user = await findUserByStudentId(studentId);
-      setTargetUser(user);
+      setTargetUser({ ...user }); // clone để tránh sửa trực tiếp API giả
     } catch (err) {
       setTargetUser(null);
       setError(err.message);
@@ -41,7 +42,27 @@ export default function PaymentPage({ currentUser }) {
 
   const handleConfirmOtp = () => {
     if (otpInput === "123456") {
+      // ✅ Trừ số dư
+      currentUser.available_balance -= otpStage.amount;
+
+      // ✅ Đánh dấu học phí đã thanh toán
+      const updatedTuition = targetUser.tuition.map((t) =>
+        t.id === otpStage.id ? { ...t, paid: true } : t
+      );
+      setTargetUser({ ...targetUser, tuition: updatedTuition });
+
+      // ✅ Lưu giao dịch
+      addTransaction({
+        studentId: targetUser.studentId,
+        fullname: targetUser.fullname,
+        amount: otpStage.amount,
+        description: otpStage.title,
+        payer: currentUser.fullname,
+      });
+
       alert(`Thanh toán thành công cho khoản ${otpStage.title}!`);
+
+      // Reset OTP stage
       setOtpStage(null);
       setOtpInput("");
     } else {
@@ -81,7 +102,8 @@ export default function PaymentPage({ currentUser }) {
             <Typography>MSSV: {targetUser.studentId}</Typography>
             <Typography>Họ tên: {targetUser.fullname}</Typography>
             <Typography>
-              Số dư khả dụng của bạn: {currentUser.available_balance.toLocaleString()} VND
+              Số dư khả dụng của bạn:{" "}
+              {currentUser.available_balance.toLocaleString()} VND
             </Typography>
 
             <Typography variant="h6" sx={{ mt: 2 }}>

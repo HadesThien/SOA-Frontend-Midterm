@@ -1,53 +1,70 @@
-import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText } from "@mui/material";
+import React from 'react';
+import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import PaymentIcon from "@mui/icons-material/Payment";
 import HistoryIcon from "@mui/icons-material/History";
-import { Link } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 
-export default function Sidebar() {
+const drawerWidth = 240;
+const miniWidth = 60;
+
+export default function Sidebar({ open, onToggle, onClose }) {
+  const location = useLocation(); // lấy path hiện tại
+
+  const items = [
+    { to: "/user", icon: <AccountCircleIcon />, text: "Thông tin User" },
+    { to: "/payment", icon: <PaymentIcon />, text: "Thanh toán" },
+    { to: "/transactions", icon: <HistoryIcon />, text: "Lịch sử giao dịch" },
+  ];
+
   return (
     <Drawer
       variant="permanent"
-      anchor="left"
+      open={open}
       sx={{
-        width: 240,
+        width: open ? drawerWidth : miniWidth,
         flexShrink: 0,
+        whiteSpace: "nowrap",
+        boxSizing: "border-box",
         "& .MuiDrawer-paper": {
-          width: 240,
-          boxSizing: "border-box",
+          width: open ? drawerWidth : miniWidth,
+          transition: (theme) =>
+            theme.transitions.create("width", {
+              easing: theme.transitions.easing.sharp,
+              duration: open
+                ? theme.transitions.duration.enteringScreen
+                : theme.transitions.duration.leavingScreen,
+            }),
+          overflowX: "hidden",
         },
       }}
     >
+      <Divider />
       <List>
-        {/* User Page */}
-        <ListItem disablePadding>
-          <ListItemButton component={Link} to="/user">
-            <ListItemIcon>
-              <AccountCircleIcon />
-            </ListItemIcon>
-            <ListItemText primary="Thông tin User" />
-          </ListItemButton>
-        </ListItem>
-
-        {/* Payment Page */}
-        <ListItem disablePadding>
-          <ListItemButton component={Link} to="/payment">
-            <ListItemIcon>
-              <PaymentIcon />
-            </ListItemIcon>
-            <ListItemText primary="Thanh toán" />
-          </ListItemButton>
-        </ListItem>
-
-        {/* Transaction History */}
-        <ListItem disablePadding>
-          <ListItemButton component={Link} to="/transactions">
-            <ListItemIcon>
-              <HistoryIcon />
-            </ListItemIcon>
-            <ListItemText primary="Lịch sử giao dịch" />
-          </ListItemButton>
-        </ListItem>
+        {items.map(({ to, icon, text }, idx) => (
+          <ListItem
+            key={idx}
+            disablePadding
+            sx={{ justifyContent: open ? "initial" : "center" }}
+          >
+            <ListItemButton
+              component={Link}
+              to={to}
+              selected={location.pathname === to} // giữ đậm khi đang ở route
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: open ? 2 : "auto",
+                  justifyContent: "center",
+                }}
+              >
+                {icon}
+              </ListItemIcon>
+              {open && <ListItemText primary={text} />}
+            </ListItemButton>
+          </ListItem>
+        ))}
       </List>
     </Drawer>
   );

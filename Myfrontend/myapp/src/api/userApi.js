@@ -1,7 +1,7 @@
 const mockUsers = [
      { 
-    username: 'user01',
-    password: 'password1',
+    username: '01',
+    password: '1',
     fullname: 'Nguyễn Văn A',
     studentId: 'SV001',
     phone: '0987654321',

@@ -7,30 +7,54 @@ import Header from "./components/common/Header";
 import LoginPage from "./pages/LoginPage";
 import UserPage from "./pages/UserPage";
 import PaymentPage from "./pages/PaymentPage";
+import TransHistoryPage from "./pages/TransHistoryPage";
+
+// const drawerWidth = 240;
 
 export default function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const handleToggleSidebar = () => {
+    setSidebarOpen(prev => !prev);
+  };
+
   const [currentUser, setCurrentUser] = useState(null);
   const navigate = useNavigate();
 
   const handleLogin = (user) => {
     setCurrentUser(user);
+    setSidebarOpen(true); // Mở sidebar ngay sau đăng nhập
     navigate("/user");
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
+    // setSidebarOpen(false);
     navigate("/");
   };
 
   return (
-    <Box sx={{ display: "flex", flexGrow: 1 }}>
-      {/* Chỉ hiển thị Sidebar nếu đã đăng nhập */}
-      {currentUser && <Sidebar />}
+     <Box sx={{ display: "flex" }}>
+      {/* Sidebar chỉ hiển thị khi đã đăng nhập */}
+      {currentUser && (
+        <Sidebar
+          open={sidebarOpen}
+          onClose={handleToggleSidebar}
+          onNavigate={(page) => {
+            navigate(`/${page}`);
+          }}
+        />
+      )}
 
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-        {/* Header luôn hiển thị nhưng sẽ có nút Đăng xuất nếu có user */}
-        <Header onLogout={handleLogout} currentUser={currentUser} />
-
+       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+        {/* Header chỉ hiển thị khi đã đăng nhập */}
+        {currentUser && (
+        <Header
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          onToggleSidebar={handleToggleSidebar}
+        />
+        )}
+        
         <Routes>
           <Route path="/" element={<LoginPage onLogin={handleLogin} />} />
           <Route
@@ -48,6 +72,17 @@ export default function App() {
             element={
               currentUser ? (
                 <PaymentPage currentUser={currentUser} />
+              ) : (
+                <LoginPage onLogin={handleLogin} />
+              )
+            }
+          />
+
+          <Route
+            path="/transactions"
+            element={
+              currentUser ? (
+                <TransHistoryPage />
               ) : (
                 <LoginPage onLogin={handleLogin} />
               )
