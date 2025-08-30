@@ -16,9 +16,12 @@ export default function LoginPage({ onLogin }) {
 
     try {
       const user = await loginUser(form.username, form.password);
-      onLogin(user); // ✅ nếu login thành công thì gọi onLogin
+
+      // localStorage.setItem("studentId", user.studentId);
+      // localStorage.setItem("currentUser", JSON.stringify(user));
+      onLogin(user); //  nếu login thành công thì gọi onLogin để App biết user đã login
     } catch (err) {
-      setError(err.message); // ✅ hiện lỗi từ userApi (VD: "Tên đăng nhập hoặc mật khẩu không chính xác.")
+      setError(err.message); //  hiện lỗi từ userApi (VD: "Tên đăng nhập hoặc mật khẩu không chính xác.")
     }
   };
 

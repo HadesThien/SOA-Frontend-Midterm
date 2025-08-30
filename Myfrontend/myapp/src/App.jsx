@@ -2,6 +2,7 @@ import { Routes, Route, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
+import Toolbar from "@mui/material/Toolbar";
 import Sidebar from "./components/common/Sidebar";
 import Header from "./components/common/Header";
 import LoginPage from "./pages/LoginPage";
@@ -48,11 +49,15 @@ export default function App() {
        <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         {/* Header chỉ hiển thị khi đã đăng nhập */}
         {currentUser && (
-        <Header
-          currentUser={currentUser}
-          onLogout={handleLogout}
-          onToggleSidebar={handleToggleSidebar}
-        />
+          <>
+            <Header
+              currentUser={currentUser}
+              onLogout={handleLogout}
+              onToggleSidebar={handleToggleSidebar}
+              sidebarOpen={sidebarOpen} 
+            />
+            <Toolbar />
+          </>
         )}
         
         <Routes>
