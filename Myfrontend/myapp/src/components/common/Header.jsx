@@ -11,7 +11,8 @@ export default function Header({ onLogout, currentUser, onToggleSidebar, sidebar
       position="fixed"
       sx={{
         // backgroundColor: "#1976d2",
-        backgroundImage: "linear-gradient(180deg, #1976d2, #42a5f5)",
+        backgroundImage: " linear-gradient(135deg, #1f2f98, #3a7bd5, #00d2ff)",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
         zIndex: (theme) => theme.zIndex.drawer + 1,
         // width: `calc(100% - ${sidebarOpen ? drawerWidth : miniWidth}px)`,
         // marginLeft: `${sidebarOpen ? drawerWidth : miniWidth}px`,
@@ -23,19 +24,30 @@ export default function Header({ onLogout, currentUser, onToggleSidebar, sidebar
       }}
     >
       <Toolbar>
-        <IconButton edge="start" color="inherit" onClick={onToggleSidebar} sx={{ mr: 2 }}>
-          <MenuIcon />
-        </IconButton>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>
-          My App
-        </Typography>
-        <Typography variant="body1" sx={{ mr: 2 }}>
-          Xin chào, <strong>{currentUser.fullname}</strong>
-        </Typography>
-        <Button color="inherit" variant="outlined" onClick={onLogout}>
-          Đăng xuất
-        </Button>
-      </Toolbar>
+    <IconButton edge="start" color="inherit" onClick={onToggleSidebar} sx={{ mr: 2 }}>
+      <MenuIcon />
+    </IconButton>
+    <Typography 
+      variant="h6" 
+      sx={{ flexGrow: 1, fontWeight: "bold", letterSpacing: "1px" }}
+    >
+      iBanking for TDTU
+    </Typography>
+    <Typography variant="body1" sx={{ mr: 2 }}>
+      Xin chào, <strong>{currentUser.fullname}</strong>
+    </Typography>
+    <Button 
+      color="inherit" 
+      variant="outlined" 
+      onClick={onLogout}
+      sx={{
+        borderColor: "#f5f5f5",
+        "&:hover": { backgroundColor: "rgba(255,255,255,0.1)" }
+      }}
+    >
+      Đăng xuất
+    </Button>
+  </Toolbar>
     </AppBar>
   );
 }

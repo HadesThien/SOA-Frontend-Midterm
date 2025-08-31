@@ -5,21 +5,38 @@ let transactions = []; // Giả lập DB trong bộ nhớ
  * @description Lưu một giao dịch vào "database"
  */
 export const addTransaction = (transaction) => {
-  transactions.push({
-    id: transactions.length + 1,
-    ...transaction,
-    date: new Date().toLocaleString(), // thêm ngày giờ
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      transactions.push({
+        ...transaction,
+        id: transactions.length + 1,
+        date: new Date().toLocaleString("vi-VN"), // thêm ngày giờ
+      });
+      resolve(true);
+    }, 300);
   });
 };
 
 /**
  * @name getTransactions
- * @description Lấy toàn bộ lịch sử giao dịch
+ * @description Lấy lịch sử giao dịch theo studentId (nếu có)
  */
-export const getTransactions = () => {
+export const getTransactions = ({studentId = null, payer = null}= {})  => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve(transactions);
+      // if (studentId) {
+      //   resolve(transactions.filter(t => t.studentId === studentId));
+      // } else {
+      //   resolve(transactions);
+      // }
+       let filtered = transactions; 
+      if (studentId) {
+        filtered = filtered.filter((t) => t.studentId === studentId);
+      }
+      if (payer) {
+        filtered = filtered.filter((t) => t.payer === payer);
+      }
+      resolve(filtered);
     }, 300);
   });
 };

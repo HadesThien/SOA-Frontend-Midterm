@@ -7,6 +7,8 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
+  Typography,
+  Box,
 } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import PaymentIcon from "@mui/icons-material/Payment";
@@ -17,7 +19,7 @@ const drawerWidth = 240;
 const miniWidth = 60;
 
 export default function Sidebar({ open }) {
-  const location = useLocation(); // lấy path hiện tại
+  const location = useLocation();
 
   const items = [
     { to: "/user", icon: <AccountCircleIcon />, text: "Thông tin User" },
@@ -43,16 +45,30 @@ export default function Sidebar({ open }) {
                 : theme.transitions.duration.leavingScreen,
             }),
           overflowX: "hidden",
-          background: "linear-gradient(45deg, #1976d2, #42a5f5)",
+          background: "linear-gradient(135deg, #1f2f98, #3a7bd5, #00d2ff)", // gradient sang hơn chút
           color: "white",
           borderRight: "none",
-          top: "64px", // đẩy xuống dưới header
+          top: "64px",
           height: "calc(100% - 64px)",
+          boxShadow: "2px 0 8px rgba(0,0,0,0.4)",
         },
       }}
       open={open}
     >
-      <Divider />
+      {/* Logo hoặc tiêu đề nhỏ */}
+      {open && (
+        <Box sx={{ p: 2, textAlign: "center" }}>
+          <Typography
+            variant="subtitle1"
+            sx={{ fontWeight: "bold", letterSpacing: "1px" }}
+          >
+            TDTU
+          </Typography>
+        </Box>
+      )}
+
+      <Divider sx={{ borderColor: "rgba(255,255,255,0.2)" }} />
+
       <List>
         {items.map(({ to, icon, text }, idx) => {
           const selected = location.pathname === to;
@@ -66,17 +82,20 @@ export default function Sidebar({ open }) {
                   minHeight: 48,
                   justifyContent: open ? "initial" : "center",
                   px: 2.5,
-                  borderRadius: "8px", // bo tròn item đẹp hơn
-                  mx: 1, // cách mép một chút
+                  borderRadius: "10px",
+                  mx: 1,
+                  my: 0.5,
+                  transition: "all 0.3s ease",
                   "&.Mui-selected": {
-                    backgroundColor: "rgba(255,255,255,0.25)", // nền mờ khi active
+                    backgroundColor: "rgba(255,255,255,0.2)",
                     fontWeight: "bold",
                   },
                   "&.Mui-selected:hover": {
-                    backgroundColor: "rgba(255,255,255,0.35)", // hover khi active
+                    backgroundColor: "rgba(255,255,255,0.3)",
                   },
                   "&:hover": {
-                    backgroundColor: "rgba(255,255,255,0.15)", // hover bình thường
+                    backgroundColor: "rgba(255,255,255,0.15)",
+                    transform: "translateX(4px)", // hiệu ứng trượt nhẹ khi hover
                   },
                 }}
               >
@@ -85,7 +104,7 @@ export default function Sidebar({ open }) {
                     minWidth: 0,
                     mr: open ? 2 : "auto",
                     justifyContent: "center",
-                    color: "inherit", // giữ icon màu trắng
+                    color: "inherit",
                   }}
                 >
                   {icon}

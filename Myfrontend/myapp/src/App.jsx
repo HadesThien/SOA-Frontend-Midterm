@@ -87,7 +87,8 @@ export default function App() {
             path="/transactions"
             element={
               currentUser ? (
-                <TransHistoryPage />
+                // <TransHistoryPage />
+                  <TransHistoryPage currentUser={currentUser} />
               ) : (
                 <LoginPage onLogin={handleLogin} />
               )

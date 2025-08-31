@@ -1,237 +1,58 @@
-// import { useState } from "react";
-// import {
-//   Box,
-//   TextField,
-//   Button,
-//   Typography,
-//   Card,
-//   CardContent,
-//   List,
-//   ListItem,
-//   ListItemText,
-// } from "@mui/material";
-// import { findUserByStudentId } from "../api/userApi";
-// import { addTransaction, getTransactions } from "../api/transactionApi"; //  import thêm
-
-// export default function PaymentPage({ currentUser }) {
-//   const [studentId, setStudentId] = useState("");
-//   const [targetUser, setTargetUser] = useState(null); // người được thanh toán hộ
-//   const [error, setError] = useState("");
-//   const [otpStage, setOtpStage] = useState(null); // khoản học phí đang cần OTP
-//   const [otpInput, setOtpInput] = useState("");
-
-
-//   const handleSearch = async () => {
-//     try {
-//       setError("");
-//       const user = await findUserByStudentId(studentId);
-
-//       // Lấy danh sách giao dịch đã trả
-//       const trans = await getTransactions();
-
-//       // Lọc học phí: nếu fee.id đã có trong trans => đánh dấu paid = true
-//       const tuitionWithPaid = user.tuition.map((t) => {
-//         const alreadyPaid = trans.some(
-//           (tr) => tr.studentId === user.studentId && tr.description === t.title
-//         );
-//         return alreadyPaid ? { ...t, paid: true } : t;
-//       });
-
-//       setTargetUser({ ...user, tuition: tuitionWithPaid });
-//     } catch (err) {
-//       setTargetUser(null);
-//       setError(err.message);
-//     }
-//   };
-//   const handlePay = (fee) => {
-//     if (currentUser.available_balance < fee.amount) {
-//       setError("Số dư không đủ để thanh toán!");
-//       return;
-//     }
-//     setError("");
-//     setOtpStage(fee); // chuyển qua bước OTP
-//   };
-
-//   const handleConfirmOtp = () => {
-//     if (otpInput === "123456") {
-//       // ✅ Trừ số dư
-//       currentUser.available_balance -= otpStage.amount;
-
-//       // ✅ Đánh dấu học phí đã thanh toán
-//       const updatedTuition = targetUser.tuition.map((t) =>
-//         t.id === otpStage.id ? { ...t, paid: true } : t
-//       );
-//       setTargetUser({ ...targetUser, tuition: updatedTuition });
-
-//       // ✅ Lưu giao dịch
-//       addTransaction({
-//         studentId: targetUser.studentId,
-//         feeId: otpStage.id,
-//         fullname: targetUser.fullname,
-//         amount: otpStage.amount,
-//         description: otpStage.title,
-//         payer: currentUser.fullname,
-//       });
-
-//       alert(`Thanh toán thành công cho khoản ${otpStage.title}!`);
-
-//       // Reset OTP stage
-//       setOtpStage(null);
-//       setOtpInput("");
-//     } else {
-//       setError("Mã OTP không chính xác!");
-//     }
-//   };
-
-//   return (
-//     <Box sx={{ p: 3 }}>
-//       <Typography variant="h5" gutterBottom>
-//         Thanh toán học phí
-//       </Typography>
-
-//       {/* Ô tìm MSSV */}
-//       <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-//         <TextField
-//           label="Mã số sinh viên"
-//           value={studentId}
-//           onChange={(e) => setStudentId(e.target.value)}
-//         />
-//         <Button variant="contained" onClick={handleSearch}>
-//           Tìm
-//         </Button>
-//       </Box>
-
-//       {error && (
-//         <Typography color="error" sx={{ mb: 2 }}>
-//           {error}
-//         </Typography>
-//       )}
-
-//       {/* Nếu tìm thấy sinh viên */}
-//       {targetUser && (
-//         <Card sx={{ mb: 3 }}>
-//           <CardContent>
-//             <Typography variant="h6">Thông tin sinh viên</Typography>
-//             <Typography>MSSV: {targetUser.studentId}</Typography>
-//             <Typography>Họ tên: {targetUser.fullname}</Typography>
-//             <Typography>
-//               Số dư khả dụng của bạn:{" "}
-//               {currentUser.available_balance.toLocaleString()} VND
-//             </Typography>
-
-//             <Typography variant="h6" sx={{ mt: 2 }}>
-//               Các khoản học phí chưa thanh toán
-//             </Typography>
-//             <List>
-//               {targetUser.tuition
-//                 .filter((t) => !t.paid)
-//                 .map((t) => (
-//                   <ListItem
-//                     key={t.id}
-//                     secondaryAction={
-//                       <Button variant="contained" onClick={() => handlePay(t)}>
-//                         Thanh toán
-//                       </Button>
-//                     }
-//                   >
-//                     <ListItemText
-//                       primary={t.title}
-//                       secondary={`Số tiền: ${t.amount.toLocaleString()} VND`}
-//                     />
-//                   </ListItem>
-//                 ))}
-//             </List>
-//           </CardContent>
-//         </Card>
-//       )}
-
-//       {/* Form nhập OTP */}
-//       {otpStage && (
-//         <Card>
-//           <CardContent>
-//             <Typography variant="h6">
-//               Nhập mã OTP để thanh toán: {otpStage.title}
-//             </Typography>
-//             <TextField
-//               label="Mã OTP (demo: 123456)"
-//               value={otpInput}
-//               onChange={(e) => setOtpInput(e.target.value)}
-//               sx={{ mt: 2, mr: 2 }}
-//             />
-//             <Button variant="contained" onClick={handleConfirmOtp}>
-//               Xác nhận
-//             </Button>
-//           </CardContent>
-//         </Card>
-//       )}
-//     </Box>
-//   );
-// }
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Box,
-  Grid,
+  Typography,
   TextField,
   Button,
-  Typography,
-  Paper,
+  Alert,
+  Divider,
+  Card,
+  CardContent,
+  Avatar,
+  Grid,
   Checkbox,
   FormControlLabel,
-  Alert,
-  Snackbar,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
 } from "@mui/material";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import { findUserByStudentId } from "../api/userApi";
-import { addTransaction, getTransactions } from "../api/transactionApi";
-import AccountCircleSharpIcon from '@mui/icons-material/AccountCircleSharp';
-import SearchIcon from '@mui/icons-material/Search';
-import PaymentIcon from '@mui/icons-material/Payment';
-import DoneOutlinedIcon from '@mui/icons-material/DoneOutlined';
+import { addTransaction } from "../api/transactionApi";
 
 export default function PaymentPage({ currentUser }) {
   const [studentId, setStudentId] = useState("");
   const [targetUser, setTargetUser] = useState(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(""); 
+  const [otpError, setOtpError] = useState(""); 
+  const [successMsg, setSuccessMsg] = useState("");
   const [otpStage, setOtpStage] = useState(null);
   const [otpInput, setOtpInput] = useState("");
   const [agreed, setAgreed] = useState(false);
-  const [successMsg, setSuccessMsg] = useState("");
 
+  // Tra cứu học phí
   const handleSearch = async () => {
-    try {
-      setError("");
-      const user = await findUserByStudentId(studentId);
-      const trans = await getTransactions();
+    setError("");
+    setSuccessMsg("");
+    setOtpError("");
+    setTargetUser(null);
 
-      const tuitionWithPaid = user.tuition.map((t) => {
-        const alreadyPaid = trans.some(
-          (tr) => tr.studentId === user.studentId && tr.description === t.title
-        );
-        return alreadyPaid ? { ...t, paid: true } : t;
-      });
-
-      setTargetUser({ ...user, tuition: tuitionWithPaid });
-    } catch (err) {
-      setTargetUser(null);
-      setError(err.message);
-    }
-  };
-
-  const handlePay = (fee) => {
-    if (currentUser.available_balance < fee.amount) {
-      setError("Số dư không đủ để thanh toán!");
+    if (!studentId) {
+      setError("Vui lòng nhập mã sinh viên");
       return;
     }
-    setError("");
-    setOtpStage(fee);
+
+    const user = await findUserByStudentId(studentId);
+    if (!user) {
+      setError("Không tìm thấy sinh viên");
+    } else {
+      setTargetUser(user);
+    }
   };
 
-  const handleConfirmOtp = () => {
+  // Xác nhận OTP
+  const handleConfirmOtp = async () => {
     if (otpInput === "123456") {
+      setOtpError(""); 
+
       currentUser.available_balance -= otpStage.amount;
 
       const updatedTuition = targetUser.tuition.map((t) =>
@@ -239,7 +60,7 @@ export default function PaymentPage({ currentUser }) {
       );
       setTargetUser({ ...targetUser, tuition: updatedTuition });
 
-      addTransaction({
+      await addTransaction({
         studentId: targetUser.studentId,
         feeId: otpStage.id,
         fullname: targetUser.fullname,
@@ -253,148 +74,141 @@ export default function PaymentPage({ currentUser }) {
       setOtpInput("");
       setAgreed(false);
     } else {
-      setError("Mã OTP không chính xác!");
+      setOtpError("Mã OTP không chính xác!");
     }
   };
 
-  const unpaidFees = targetUser?.tuition?.filter((t) => !t.paid) || [];
+  // Thanh toán -> mở OTP
+  const handlePayment = (fee) => {
+    if (currentUser.available_balance < fee.amount) {
+      setError("Số dư không đủ để thanh toán");
+      return;
+    }
+    setOtpStage(fee);
+    setOtpInput("");
+    setOtpError("");
+    setError("");
+    setSuccessMsg("");
+  };
 
   return (
-    <Box sx={{ p: 4 }}>
-      <Typography variant="h4" gutterBottom fontWeight="bold">
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h5" gutterBottom fontWeight="bold">
         Thanh toán học phí
       </Typography>
 
-      {/* Thông tin người thanh toán */}
-      <Paper sx={{ p: 3, mb: 4, borderRadius: 3, boxShadow: 3 }}>
-         <Typography variant="h6" gutterBottom sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-           <AccountCircleSharpIcon color="action" />
-           Thông tin người thanh toán
-        </Typography>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <TextField
-              label="Họ tên"
-              value={currentUser.fullname}
-              fullWidth
-              disabled
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              label="Số điện thoại"
-              value={currentUser.phone}
-              fullWidth
-              disabled
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              label="Số dư tài khoản"
-              value={currentUser.available_balance.toLocaleString() + " VND"}
-              fullWidth
-              disabled
-            />
-          </Grid>
-        </Grid>
-      </Paper>
-
-      {/* Tra cứu học phí */}
-      <Paper sx={{ p: 3, mb: 4, borderRadius: 3, boxShadow: 3 }}>
-        <Typography variant="h6" gutterBottom sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <SearchIcon color="action"/>
-          Tra cứu học phí
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={8}>
-            <TextField
-              label="Mã số sinh viên"
-              value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-              fullWidth
-            />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Button
-              variant="contained"
-              fullWidth
-              size="large"
-              onClick={handleSearch}
+      {/* Thông tin tài khoản hiện tại */}
+      <Card
+        sx={{
+          mb: 3,
+          p: 2,
+          borderRadius: 3,
+          boxShadow: 3,
+          background: "linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%)",
+        }}
+      >
+        <Grid container spacing={2} alignItems="center">
+          <Grid item>
+            <Avatar
+              sx={{ bgcolor: "#3f51b5", width: 56, height: 56 }}
             >
-              Tìm
-            </Button>
+              <AccountCircleIcon fontSize="large" />
+            </Avatar>
+          </Grid>
+          <Grid item xs>
+            <Typography variant="subtitle1" fontWeight="bold">
+              {currentUser.fullname}
+            </Typography>
+            <Typography color="text.secondary">
+              📞 {currentUser.phone}
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", mt: 0.5 }}>
+              <AccountBalanceWalletIcon sx={{ mr: 0.5, color: "green" }} />
+              <Typography fontWeight="bold" color="green">
+                {currentUser.available_balance.toLocaleString()} VND
+              </Typography>
+            </Box>
           </Grid>
         </Grid>
+      </Card>
 
-        {targetUser && (
-          <Box sx={{ mt: 3 }}>
-            <Divider sx={{ mb: 2 }} />
-            <Typography>MSSV: {targetUser.studentId}</Typography>
-            <Typography>Họ tên sinh viên: {targetUser.fullname}</Typography>
+      {/* Form nhập mã SV */}
+      <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+        <TextField
+          label="Mã sinh viên"
+          value={studentId}
+          onChange={(e) => setStudentId(e.target.value)}
+        />
+        <Button variant="contained" onClick={handleSearch}>
+          Tra cứu
+        </Button>
+      </Box>
 
-            <Typography variant="h6" sx={{ mt: 2 }}>
-              Danh sách khoản học phí:
+      {error && <Alert severity="error">{error}</Alert>}
+      {otpError && <Alert severity="error">{otpError}</Alert>}
+      {successMsg && <Alert severity="success">{successMsg}</Alert>}
+
+      {/* Thông tin học phí */}
+      {targetUser && (
+        <Card sx={{ mt: 3 }}>
+          <CardContent>
+            <Typography variant="h6">
+              Sinh viên: {targetUser.fullname}
             </Typography>
-            <List>
-              {unpaidFees.length > 0 ? (
-                unpaidFees.map((fee) => (
-                  <ListItem key={fee.id} divider>
-                    <ListItemText
-                      primary={`${fee.title}`}
-                      secondary={`Số tiền: ${fee.amount.toLocaleString()} VND`}
-                    />
-                    <ListItemSecondaryAction>
-                      <Button
-                        variant="contained"
-                        onClick={() => handlePay(fee)}
-                      >
-                        Thanh toán
-                      </Button>
-                    </ListItemSecondaryAction>
-                  </ListItem>
-                ))
-              ) : (
-                <Typography 
-                  sx={{ 
-                    mt: 2, 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: 1, 
-                    color: "green", 
-                    fontWeight: "bold" 
-                  }} 
-                  gutterBottom
-                >
-                  <DoneOutlinedIcon sx={{ color: "green" }} />
-                  Sinh viên này đã hoàn tất học phí.
-                </Typography>
+            <Divider sx={{ my: 2 }} />
 
+            {targetUser.tuition.map((fee) => (
+              <Box
+                key={fee.id}
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 2,
+                }}
+              >
+                <Box>
+                  <Typography>{fee.title}</Typography>
+                  <Typography color="text.secondary">
+                    Số tiền: {fee.amount.toLocaleString()} VND
+                  </Typography>
+                  <Typography
+                    color={fee.paid ? "green" : "red"}
+                    fontWeight="bold"
+                  >
+                    {fee.paid ? "Đã thanh toán" : "Chưa thanh toán"}
+                  </Typography>
+                </Box>
+                {!fee.paid && (
+                  <Button
+                    variant="contained"
+                    onClick={() => handlePayment(fee)}
+                  >
+                    Thanh toán
+                  </Button>
+                )}
+              </Box>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
-              )}
-            </List>
-          </Box>
-        )}
-      </Paper>
-
-      {/* Xác thực OTP */}
-      {otpStage && !successMsg && (
-        <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 3 }}>
-          <Typography variant="h6" gutterBottom sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <PaymentIcon color="action"/>
-            Xác thực OTP
+      {/* Giao diện OTP */}
+      {otpStage && (
+        <Card sx={{ mt: 3, p: 2 }}>
+          <Typography variant="h6">
+            Xác nhận thanh toán: {otpStage.title}
           </Typography>
           <Typography>
-            Khoản thanh toán:{" "}
-            <strong>
-              {otpStage.title} - {otpStage.amount.toLocaleString()} VND
-            </strong>
+            Số tiền: {otpStage.amount.toLocaleString()} VND
           </Typography>
-          <Typography>
-            Số dư của bạn:{" "}
-            <strong>
-               {currentUser.available_balance.toLocaleString()} VND
-            </strong>
-          </Typography>
+          <TextField
+            fullWidth
+            sx={{ mt: 2 }}
+            label="Nhập OTP (123456)"
+            value={otpInput}
+            onChange={(e) => setOtpInput(e.target.value)}
+          />
           <FormControlLabel
             control={
               <Checkbox
@@ -402,48 +216,18 @@ export default function PaymentPage({ currentUser }) {
                 onChange={(e) => setAgreed(e.target.checked)}
               />
             }
-            label="Tôi đồng ý với điều khoản sử dụng"
-            sx={{ mt: 2 }}
+            label="Tôi đồng ý với điều khoản thanh toán"
           />
-
-          <Grid container spacing={2} sx={{ mt: 2 }}>
-            <Grid item xs={12} md={8}>
-              <TextField
-                label="Nhập mã OTP"
-                value={otpInput}
-                onChange={(e) => setOtpInput(e.target.value)}
-                fullWidth
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Button
-                variant="contained"
-                fullWidth
-                size="large"
-                disabled={!agreed}
-                onClick={handleConfirmOtp}
-              >
-                Xác nhận cuối cùng
-              </Button>
-            </Grid>
-          </Grid>
-        </Paper>
+          <Button
+            variant="contained"
+            sx={{ mt: 2 }}
+            disabled={!agreed}
+            onClick={handleConfirmOtp}
+          >
+            Xác nhận
+          </Button>
+        </Card>
       )}
-
-      {/* Thông báo lỗi */}
-      {error && <Alert severity="error" sx={{ mt: 3 }}>{error}</Alert>}
-
-      {/* Thông báo thành công */}
-      <Snackbar
-        open={!!successMsg}
-        autoHideDuration={4000}
-        onClose={() => setSuccessMsg("")}
-      >
-        <Alert severity="success" onClose={() => setSuccessMsg("")}>
-          {successMsg}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 }
-
