@@ -1,0 +1,17 @@
+/* Tùy chỉnh thanh cuộn toàn trang */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #1e90ff 0%, #00bfff 100%);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2c3ecb;
+}
