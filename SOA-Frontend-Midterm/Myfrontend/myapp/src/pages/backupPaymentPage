@@ -1,0 +1,611 @@
+import React, { useState } from "react";
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Alert,
+  Divider,
+  Card,
+  CardContent,
+  Avatar,
+  Grid,
+  Checkbox,
+  FormControlLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
+} from "@mui/material";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+// import { findUserByStudentId } from "../api/userApi";
+import { getTuitionsByStudentId } from "../api/tuitionsApi";
+import CircularProgress from "@mui/material/CircularProgress";
+import Backdrop from "@mui/material/Backdrop";
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert from "@mui/material/Alert";
+import PhoneIcon from "@mui/icons-material/Phone";
+
+
+import { addTransaction, verifyTransactionReal } from "../api/transactionApi";
+import * as transactionApi from "../api/transactionApi";
+console.log("Available exports:", transactionApi);
+
+export default function PaymentPage({ currentUser }) {
+  const [studentId, setStudentId] = useState("");
+  const [targetUser, setTargetUser] = useState(null);
+  const [error, setError] = useState(""); 
+  const [otpError, setOtpError] = useState(""); 
+  const [successMsg, setSuccessMsg] = useState("");
+  const [otpStage, setOtpStage] = useState(null);
+  const [otpInput, setOtpInput] = useState("");
+  const [agreed, setAgreed] = useState(false);
+  const [loadingCreate, setLoadingCreate] = useState(false);
+  const [loadingVerify, setLoadingVerify] = useState(false);
+  const [otpDialogOpen, setOtpDialogOpen] = useState(false);
+  const [confirmCloseOtp, setConfirmCloseOtp] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [selectedFee, setSelectedFee] = useState(null);
+  const [agreedConfirm, setAgreedConfirm] = useState(false);
+  const [pendingPaymentId, setPendingPaymentId] = useState(null);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(false);
+  const [loadingSearch, setLoadingSearch] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMsg, setSnackbarMsg] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("info"); // "error", "success", "warning", "info"
+
+
+
+  //Tra cứu học phí
+  const handleSearch = async () => {
+    setError("");
+    setSuccessMsg("");
+    setOtpError("");
+    setTargetUser(null);
+    setLoadingSearch(true);
+    await new Promise((r) => setTimeout(r, 500)); // delay 500ms
+
+    if (!studentId) {
+      // setError("Vui lòng nhập mã sinh viên");
+      showSnackbar("Không tìm thấy mã sinh viên này", "error");
+      setLoadingSearch(false);
+      return;
+    }
+
+    try {
+      const data = await getTuitionsByStudentId(studentId);
+      console.log("Danh sách học phí", data.tuitions);
+
+      if(!data || !data.tuitions || data.tuitions.length ===0){
+        // setError("Không tìm thấy học phí cho mã sinh viên này");
+        showSnackbar("Không tìm thấy sinh viên này", "error");
+      } else{
+        showSnackbar("Tra cứu thành công!", "success");
+        setTargetUser({
+          studentId: data.student_id,
+          fullname: "Sinh viên " + data.student_id,
+          tuition: data.tuitions,
+        });
+      }
+    } catch (err) {
+      setError("Lỗi khi tìm kiếm học phí");
+    } finally {
+      setLoadingSearch(false);
+    }   
+  };
+
+  //Hàm hiển thị Snackbar
+  const showSnackbar = (message, severity = "info") => {
+    setSnackbarMsg(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  };
+
+
+// const handleRefetchWithLoading = () => {
+//   setIsLoadingStatus(true);
+//   refetchTuition().finally(() => {
+//     setIsLoadingStatus(false);
+//   });
+// };
+
+const handleRefetchWithLoading = () => {
+  setIsLoadingStatus(true);
+  setTimeout(() => {
+    refetchTuition().finally(() => {
+      setIsLoadingStatus(false);
+    });
+  }, 500); // delay 500ms để spinner kịp hiển thị
+};
+
+
+
+const handleConfirmOtp = async () => {
+  setOtpError(""); // reset lỗi cũ
+  setSuccessMsg(""); // reset thông báo cũ
+  setLoadingVerify(true);
+
+  if (!otpInput || otpInput.length !== 6) {
+    setOtpError("Vui lòng nhập mã OTP hợp lệ (6 chữ số).");
+    setLoadingVerify(false);
+    return;
+  }
+  try {
+    const paymentId = otpStage?.payment_id;
+    if (!paymentId){
+      setOtpError("Không thể lấy mã giao dịch.");
+      setLoadingVerify(false);
+      return;
+    }
+
+    const verifyResponse = await verifyTransactionReal({
+      email: currentUser.email,
+      payment_id: paymentId,
+      otp: otpInput
+    });
+
+    if (
+      verifyResponse.message?.toLowerCase().includes("invalid") ||
+      verifyResponse.success === false
+    ) {
+      // setOtpError(verifyResponse.message || "Xác thực OTP không thành công.");
+      //showSnackbar(verifyResponse.message || "Xác thực OTP không thành công.", "error");
+      showSnackbar("Mã OTP không hợp lệ. Vui lòng thử lại.", "error"); 
+      setLoadingVerify(false);
+      setPendingPaymentId(paymentId);
+
+      return;
+    }
+
+    currentUser.available_balance -= otpStage.amount;
+    const updatedTuition = targetUser.tuition.map((t) =>
+      t.id === otpStage.id ? { ...t, paid: true, status: "PAID" } : t
+    );
+    setTargetUser({ ...targetUser, tuition: updatedTuition });
+
+    // setSuccessMsg(` Thanh toán thành công cho khoản ${otpStage.title}!`);
+    showSnackbar(` Thanh toán thành công cho khoản ${otpStage.title}!`, "success");
+    setOtpStage(null);
+    setOtpInput("");
+    setAgreed(false);
+    setOtpDialogOpen(false); // đóng pop-up
+  } catch (err) {
+    setOtpError(err.message || "Lỗi xác thực OTP");
+  } finally {
+    setLoadingVerify(false);
+  }
+
+  const updated = await getTuitionsByStudentId(studentId);
+  setTargetUser({
+    studentId: updated.student_id,
+    fullname: "Sinh viên " + updated.student_id,
+    tuition: updated.tuitions
+  });
+}
+
+  const refetchTuition = async () => {
+          try {
+            const updated = await getTuitionsByStudentId(studentId);
+            setTargetUser({
+              studentId: updated.student_id,
+              fullname: "Sinh viên " + updated.student_id,
+              tuition: updated.tuitions
+            });
+          } catch (err) {
+            console.error("Lỗi khi refetch học phí:", err);
+          }
+        };
+
+  const handleCancelOtp = () => {
+    // Đóng giao diện OTP
+      setOtpDialogOpen(false);
+      setConfirmCloseOtp(false);
+
+      // Giữ lại thông tin giao dịch (otpStage) trong 3 phút để Redis có thể expire
+      // Không gọi setOtpStage(null) ngay lập tức
+
+      // Reset các input và thông báo
+      setOtpInput("");
+      setOtpError("");
+      setAgreed(false);
+      setSuccessMsg("Hệ thống sẽ hoàn tác giao dịch sau khoảng 3 phút nếu OTP không được xác thực.");
+
+      // Sau đúng 3 phút, xóa otpStage và refetch học phí để cập nhật trạng thái từ DB
+      setTimeout(() => {
+        setOtpStage(null); // xóa thông tin giao dịch sau khi Redis đã xử lý
+        setPendingPaymentId(null); // cho phép tạo lại giao dịch sau 3 phút
+        // refetchTuition();  // gọi lại API để lấy trạng thái mới từ DB
+        handleRefetchWithLoading();
+      }, 180000);
+
+      // Gọi lại thêm 2 lần sau đó để đảm bảo frontend bắt được trạng thái mới
+      [183000, 186000].forEach((delay) => {
+        setTimeout(() => {
+          // refetchTuition();
+          handleRefetchWithLoading();
+        }, delay);
+      });
+    };
+
+
+  const handlePayment = (fee) => {
+  setError("");
+  setSelectedFee(fee);
+  setAgreedConfirm(false);
+  setConfirmDialogOpen(true); // mở form xác nhận
+};
+
+  const handleConfirmPayment = async () => {
+    if (!selectedFee || !agreedConfirm) return;
+    console.log("Số dư:", currentUser.available_balance, "Giá tiền:", selectedFee.amount);
+    if (currentUser.available_balance < selectedFee.amount) {
+      // setError("Số dư không đủ để thanh toán khoản này. Vui lòng nạp thêm");
+      // setConfirmDialogOpen(false);
+      showSnackbar("Số dư không đủ để thanh toán khoản này. Vui lòng nạp thêm", "error");
+      setConfirmDialogOpen(false);
+      return;
+    }
+      setLoadingCreate(true);
+      try {
+        const response = await addTransaction(selectedFee.id);
+        const paymentId = response?.payment_id || response?.id;
+
+        if (response?.success === false || !paymentId) {
+          const msg = response?.message || "Không thể tạo giao dịch";
+          // setError(response.message || "Không thể tạo giao dịch");
+          showSnackbar(msg, "error");
+          // setLoadingCreate(false);
+          setConfirmDialogOpen(false);
+          return;
+        }
+
+        // ✅ Cập nhật trạng thái tạm thời ngay
+        const updatedTuition = targetUser.tuition.map((t) =>
+          t.id === selectedFee.id ? { ...t, status: "IN_PROCESS" } : t
+        );
+        setTargetUser({ ...targetUser, tuition: updatedTuition });
+
+        // ✅ Mở OTP
+        setOtpStage({ ...selectedFee, payment_id: paymentId });
+        setOtpInput("");
+        setOtpError("");
+        setSuccessMsg("");
+        setOtpDialogOpen(true);
+        setConfirmDialogOpen(false);
+      } catch (err) {
+        // setError(err.message || "Lỗi khi tạo giao dịch");
+        showSnackbar(err.message || "Lỗi khi tạo giao dịch", "error");
+        setConfirmDialogOpen(false);
+      } finally {
+        setLoadingCreate(false);
+      }
+  };
+
+
+  return (
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h5" gutterBottom fontWeight="bold">
+        Thanh toán học phí
+      </Typography>
+
+      {/* Thông tin tài khoản hiện tại */}
+      <Card
+        sx={{
+          mb: 3,
+          p: 2,
+          borderRadius: 3,
+          boxShadow: 3,
+          background: "linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%)",
+        }}
+      >
+        <Grid container spacing={2} alignItems="center">
+          <Grid item>
+            <Avatar
+              sx={{ bgcolor: "#3f51b5", width: 56, height: 56 }}
+            >
+              <AccountCircleIcon fontSize="large" />
+            </Avatar>
+          </Grid>
+          <Grid item xs>
+            <Typography variant="subtitle1" fontWeight="bold">
+              {currentUser.fullname}
+            </Typography>
+            <Typography color="text.secondary">
+              📞 {currentUser.phone}
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", mt: 0.5 }}>
+              <AccountBalanceWalletIcon sx={{ mr: 0.5, color: "green" }} />
+              
+              {/* <Typography fontWeight="bold" color="green">
+                {currentUser.available_balance.toLocaleString()} VND
+              </Typography> */}
+
+            <Typography fontWeight="bold" color="green">
+              {typeof currentUser?.available_balance === "number"
+                ? currentUser.available_balance.toLocaleString() + " VND"
+                : "N/A"}
+            </Typography>
+
+            </Box>
+          </Grid>
+        </Grid>
+      </Card>
+
+      {/* Form nhập mã SV */}
+      <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+        <TextField
+          label="Mã sinh viên"
+          value={studentId}
+          onChange={(e) => setStudentId(e.target.value)}
+        />
+        <Button variant="contained" onClick={handleSearch}>
+          Tra cứu
+        </Button>
+        {loadingSearch && (
+          <Box sx={{ display: "flex", justifyContent: "center", my: 2 }}>
+            <CircularProgress size={24} />
+          </Box>
+        )}
+
+      </Box>
+
+      {error && <Alert severity="error">{error}</Alert>}
+      {otpError && <Alert severity="error">{otpError}</Alert>}
+      {successMsg && <Alert severity="success">{successMsg}</Alert>}
+
+      {/* Thông tin học phí */}
+      {targetUser && (
+        <Card sx={{ mt: 3 }}>
+          <CardContent>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+              <Typography variant="h6">
+                Thông tin học phí, lệ phí:
+              </Typography>
+              <Typography variant="h6" color="text.secondary">
+                {targetUser.fullname}
+              </Typography>
+            </Box>
+
+            {successMsg && <Alert severity="success" sx={{ mb: 2 }}>{successMsg}</Alert>}
+
+
+            <Divider sx={{ my: 2 }} />
+
+            {(isLoadingStatus || loadingSearch) &&(
+              <Box sx={{ display: "flex", justifyContent: "center", my: 2 }}>
+                <CircularProgress size={24} />
+              </Box>
+            )}
+
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>ID</TableCell>
+                    <TableCell>Mã SV</TableCell>
+                    <TableCell>Mô tả</TableCell>
+                    <TableCell>Giá tiền</TableCell>
+                    <TableCell>Hạn thanh toán</TableCell>
+                    <TableCell>Trạng thái</TableCell>
+                    <TableCell>Hành động</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {targetUser.tuition.map((fee) => (
+                    <TableRow key={fee.id}>
+                      <TableCell>{fee.id}</TableCell>
+                      <TableCell>{fee.student_id}</TableCell>
+                      <TableCell>{fee.description}</TableCell>
+                      <TableCell>
+                        {typeof fee.amount === "number"
+                          ? fee.amount.toLocaleString() + " VND"
+                          : "N/A"}
+                      </TableCell>
+                      {/* <TableCell>
+                        {fee.expired_at
+                          ? new Date(fee.expired_at).toLocaleDateString("vi-VN")
+                          : "Không rõ"}
+                      </TableCell> */}
+                      <TableCell>{fee.expires_at}</TableCell>
+                      <TableCell>
+                        <Typography
+                          fontWeight="bold"
+                          color={
+                            fee.status === "PAID"
+                              ? "green"
+                              : fee.status === "IN_PROCESS"
+                              ? "orange"
+                              : fee.status === "EXPIRED"
+                              ? "gray"
+                              : "red"
+                          }
+                        >
+                          {fee.status === "PAID"
+                            ? "Đã thanh toán"
+                            : fee.status === "IN_PROCESS"
+                            ? "Đang xử lý"
+                            : fee.status === "EXPIRED"
+                            ? "Hết hạn"
+                            : "Chưa thanh toán"}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {fee.status === "NOT_YET_PAID" && !otpStage && fee.id !== pendingPaymentId && (
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={() => handlePayment(fee)}
+                            disabled={loadingCreate}
+                            sx={{
+                              bgcolor: "#d32f2f", 
+                              color: "white",
+                              fontWeight: "bold",
+                              textTransform: "none",
+                              px: 2,
+                              py: 1,
+                              borderRadius: 2,
+                              "&:hover": { 
+                                bgcolor: "#b71c1c" },
+                            }}
+                          >
+                            {loadingCreate ? "Đang xử lý..." : "Thanh toán"}
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+          </CardContent>
+        </Card>
+      )}
+
+      <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Xác nhận thanh toán</DialogTitle>
+        <DialogContent>
+          <Typography>Bạn có chắc muốn thanh toán khoản:</Typography>
+          <Typography fontWeight="bold" sx={{ mt: 1 }}>
+            {selectedFee?.title}
+          </Typography>
+          <Typography color="text.secondary">
+            Số tiền: {typeof selectedFee?.amount === "number"
+              ? selectedFee.amount.toLocaleString() + " VND"
+              : "N/A"}
+          </Typography>
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={agreedConfirm}
+                onChange={(e) => setAgreedConfirm(e.target.checked)}
+              />
+            }
+            label="Tôi đồng ý với điều khoản thanh toán"
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDialogOpen(false)}>Hủy</Button>
+          <Button
+            variant="contained"
+            disabled={!agreedConfirm || loadingCreate}
+            onClick={handleConfirmPayment}
+          >
+            {loadingCreate ? "Đang xử lý..." : "Xác nhận"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+
+      {/* Giao diện OTP */}
+      
+      <Dialog open={otpDialogOpen} onClose={() => setConfirmCloseOtp(true)} maxWidth="sm" fullWidth>
+        <DialogTitle>Xác nhận thanh toán</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary">
+            Mã OTP đã được gửi đến email <b>{currentUser.email}</b>. Vui lòng kiểm tra hộp thư đến hoặc thư rác.
+          </Typography>
+
+          <Typography sx={{ mt: 1 }}>
+            Số tiền: {typeof otpStage?.amount === "number"
+              ? otpStage.amount.toLocaleString() + " VND"
+              : "N/A"}
+          </Typography>
+
+          <TextField
+            fullWidth
+            sx={{ mt: 2 }}
+            label="Nhập OTP"
+            value={otpInput}
+            onChange={(e) => setOtpInput(e.target.value)}
+          />
+
+          {otpError && <Alert severity="error" sx={{ mt: 2 }}>{otpError}</Alert>}
+          {successMsg && <Alert severity="success" sx={{ mt: 2 }}>{successMsg}</Alert>}
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setConfirmCloseOtp(true)}>Hủy</Button>
+          <Button
+            variant="contained"
+            disabled={loadingVerify}
+            onClick={handleConfirmOtp}
+          >
+            {loadingVerify ? "Đang xác thực..." : "Xác nhận"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+            <Dialog open={confirmCloseOtp} onClose={() => setConfirmCloseOtp(false)}>
+
+        <DialogTitle>Xác nhận hủy thanh toán</DialogTitle>
+        <DialogContent>
+          <Typography>Bạn có chắc muốn thoát khỏi bước xác thực OTP không?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmCloseOtp(false)}>Không</Button>
+          <Button
+            color="error"
+            onClick={() => {
+              setConfirmCloseOtp(false);
+              setOtpDialogOpen(false);
+              setOtpStage(null);
+              setOtpInput("");
+              setAgreed(false);
+              setOtpError("");
+
+              // Đợi redis xử lí xong rồi mới cập nhật lại trạng thái học phí
+              // Gọi lại 3 lần để đảm bảo Redis đã xử lý
+              [5000, 10000, 15000].forEach((delay) => {
+                setTimeout(() => {
+                  handleRefetchWithLoading();
+                }, delay);
+              });
+
+            }}
+          >
+            Có, thoát
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Backdrop
+        open={loadingCreate || loadingVerify || isLoadingStatus || loadingSearch}
+        sx={{ zIndex: 9999, color: "#fff", transition: "opacity 0.3s ease-in-out" }}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <MuiAlert
+          elevation={6}
+          variant="filled"
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
+        >
+          {snackbarMsg}
+        </MuiAlert>
+      </Snackbar>
+
+
+    </Box>
+
+
+    
+  );
+}

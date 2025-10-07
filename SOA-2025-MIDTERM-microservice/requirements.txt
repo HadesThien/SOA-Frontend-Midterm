@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+httpx
+pyjwt
+python-jose
+pydantic-settings
+starlette
+sqlalchemy
+mysql-connector-python

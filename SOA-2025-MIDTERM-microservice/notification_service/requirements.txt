@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+httpx
+pyjwt
+python-jose
+pydantic-settings
+starlette
+redis
+aiokafka
+sqlalchemy
+pymysql
+cryptography
+pydantic[email]
+fastapi_mail

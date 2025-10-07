@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+httpx
+pyjwt
+python-jose
+pydantic-settings
+starlette
+sqlalchemy
+alembic
+psycopg2-binary
+pymysql
+cryptography
