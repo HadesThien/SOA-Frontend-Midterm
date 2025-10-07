@@ -1,19 +1,13 @@
-# Sử dụng Node.js LTS
 FROM node:18
 
-# Tạo thư mục app
 WORKDIR /app
 
-# Copy package.json trước để cache cài đặt
-COPY package*.json ./
-
-# Cài dependencies
-RUN npm install
-
-# Copy toàn bộ code
 COPY . .
 
-# Mặc định chạy dev server
-CMD ["npm", "start"]
+RUN npm install
+RUN npm run build
 
+RUN npm install -g serve
+EXPOSE 3000
 
+CMD ["serve", "-s", "build"]
